@@ -53,7 +53,8 @@ EXTRA_CFLAGS = \
 	-DBCMLXSDMMC \
 	-DBCMPLATFORM_BUS \
 	-DSDIO_ISR_THREAD \
-	-Wall -Wstrict-prototypes -Werror \
+	-Wall -Wstrict-prototypes \
+	-Os \
 	-I$(SRCROOT) \
 	-I$(SRCROOT)/include \
 	-I$(SRCROOT)/shared \
