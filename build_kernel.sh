@@ -4,7 +4,8 @@
 function setenv {
 	echo -n "Setting ARM environment..."
 	export ARCH=arm
-	export CROSS_COMPILE="ccache ~/Linaro/android-toolchain-eabi/bin/arm-eabi-"
+	export USE_CCACHE=1
+	export CROSS_COMPILE="/home/pax0r/Linaro/android-toolchain-eabi/bin/arm-eabi-"
 	export CFLAGS="-Ofast -mtune=arm1136jf-s -march=armv6j -floop-interchange -floop-strip-mine -fomit-frame-pointer -floop-block -mfpu=vfp -pipe"
 	echo " done."
 
