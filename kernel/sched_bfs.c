@@ -68,6 +68,8 @@
 #include <linux/log2.h>
 #include <linux/bootmem.h>
 #include <linux/ftrace.h>
+#include <linux/signal.h>
+#include <linux/sched.h>
 
 #include <asm/tlb.h>
 #include <asm/unistd.h>
