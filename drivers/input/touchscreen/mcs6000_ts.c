@@ -62,7 +62,7 @@ static void mcs6000_late_resume(struct early_suspend *h);
 /* shoud be checked, what is the difference, TOUCH_SEARCH and KEY_SERACH, TOUCH_BACK  and KEY_BACK */
 //#define LG_FW_AUDIO_HAPTIC_TOUCH_SOFT_KEY
 
-#define TS_POLLING_TIME 1 /* msec */
+#define TS_POLLING_TIME 0 /* msec */
 #define TS_POLLING_BOUNCE 	100
 
 #define DEBUG_TS 0 /* enable or disable debug message */
@@ -448,7 +448,7 @@ static irqreturn_t mcs6000_ts_irq_handler(int irq, void *handle)
 		disable_irq_nosync(dev->num_irq);
 		DMSG("%s: irq disable\n", __FUNCTION__);
 		//schedule_delayed_work(&dev->work, 0);
-		queue_delayed_work(dev->ts_wq, &dev->work,msecs_to_jiffies(0));
+		queue_delayed_work(dev->ts_wq, &dev->work,msecs_to_jiffies(TS_POLLING_TIME));
 	}
 
 	return IRQ_HANDLED;
@@ -612,35 +612,35 @@ int mcs6000_ts_ioctl_down(struct inode *inode, struct file *flip, unsigned int c
 			break;
 
 		case MCS6000_TS_DOWN_IOCTL_INTR_HIGH:
-			gpio_configure(dev->intr_gpio, GPIOF_DRIVE_OUTPUT | GPIOF_OUTPUT_HIGH);
+			gpio_direction_output(dev->intr_gpio, 1);
 			break;
 		case MCS6000_TS_DOWN_IOCTL_INTR_LOW:
-			gpio_configure(dev->intr_gpio, GPIOF_DRIVE_OUTPUT | GPIOF_OUTPUT_LOW);
+			gpio_direction_output(dev->intr_gpio, 0);
 			break;
 		case MCS6000_TS_DOWN_IOCTL_INTR_OUT:
-			gpio_configure(dev->intr_gpio, GPIOF_DRIVE_OUTPUT);
+			gpio_direction_output(dev->intr_gpio, 1);
 			break;
 		case MCS6000_TS_DOWN_IOCTL_INTR_IN:
-			gpio_configure(dev->intr_gpio, GPIOF_INPUT);
+			gpio_direction_input(dev->intr_gpio);
 			break;
 
 		case MCS6000_TS_DOWN_IOCTL_SCL_HIGH:
-			gpio_configure(dev->scl_gpio, GPIOF_DRIVE_OUTPUT | GPIOF_OUTPUT_HIGH);
+			gpio_direction_output(dev->scl_gpio, 1);
 			break;
 		case MCS6000_TS_DOWN_IOCTL_SCL_LOW:
-			gpio_configure(dev->scl_gpio, GPIOF_DRIVE_OUTPUT | GPIOF_OUTPUT_LOW);
+			gpio_direction_output(dev->scl_gpio, 0);
 			break;
 		case MCS6000_TS_DOWN_IOCTL_SDA_HIGH:
-			gpio_configure(dev->sda_gpio, GPIOF_DRIVE_OUTPUT | GPIOF_OUTPUT_HIGH);
+			gpio_direction_output(dev->sda_gpio, 1);
 			break;
 		case MCS6000_TS_DOWN_IOCTL_SDA_LOW:
-			gpio_configure(dev->sda_gpio, GPIOF_DRIVE_OUTPUT | GPIOF_OUTPUT_LOW);
+			gpio_direction_output(dev->sda_gpio, 0);
 			break;
 		case MCS6000_TS_DOWN_IOCTL_SCL_OUT:
-			gpio_configure(dev->scl_gpio, GPIOF_DRIVE_OUTPUT);
+			gpio_direction_output(dev->scl_gpio, 1);
 			break;
 		case MCS6000_TS_DOWN_IOCTL_SDA_OUT:
-			gpio_configure(dev->sda_gpio, GPIOF_DRIVE_OUTPUT);
+			gpio_direction_output(dev->sda_gpio, 1);
 			break;
 
 		case MCS6000_TS_DOWN_IOCTL_I2C_ENABLE:
@@ -685,7 +685,7 @@ int mcs6000_ts_ioctl_down(struct inode *inode, struct file *flip, unsigned int c
 			break;
 		// LGE_CHANGE_S dangwoo.choi@lge.com - for MCS7000
 		case MCS6000_TS_DOWN_IOCTL_SDA_INPUT :
-			gpio_configure(dev->sda_gpio, GPIOF_INPUT);
+			gpio_direction_input(dev->sda_gpio);
 			break;
 		case MCS6000_TS_DOWN_IOCTL_SDA_DATA :
 			err = gpio_get_value(dev->sda_gpio);
