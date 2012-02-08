@@ -8,7 +8,7 @@ function setenv {
 
 	#THIS LINE SHOULD REFLECT YOUR PATH TO THE TOOLCHAIN!
 	export CROSS_COMPILE="/home/pax0r/Linaro/android-toolchain-eabi/bin/arm-eabi-"
-	export CFLAGS="-Ofast -mtune=arm1136jf-s -march=armv6j -floop-interchange -floop-strip-mine -fomit-frame-pointer -floop-block -mfpu=vfp -pipe"
+	#export CFLAGS="-Ofast -mtune=arm1136jf-s -march=armv6j -floop-interchange -floop-strip-mine -fomit-frame-pointer -floop-block -mfpu=vfp -pipe"
 	echo " done."
 
 	echo -n "Setting other environment variables..."
