@@ -74,7 +74,7 @@ static void mcs7000_late_resume(struct early_suspend *h);
 #if defined (CONFIG_MACH_MSM7X27_JUMP)
 #define TS_POLLING_TIME 2 /* msec */
 #elif defined(CONFIG_MACH_MSM7X27_PECAN) 
-#define TS_SAMPLERATE_HZ 100
+#define TS_POLLING_TIME 1 
 #else
 #define TS_POLLING_TIME 0 /* msec */
 #endif
@@ -215,21 +215,21 @@ static __inline void mcs7000_key_event_touch(int touch_reg,  int value,  struct 
 }
 #endif
 
-static __inline void mcs7000_multi_ts_event_touch(int x1, int y1, int x2, int y2, int value,
+static __inline void mcs7000_multi_ts_event_touch(int x1, int y1, int z1, int x2, int y2, int z2, int value,
 		struct mcs7000_ts_device *dev)
 {
 	int report = 0;
 
-	if ((x1 >= 0) && (y1 >= 0)) {
-		input_report_abs(dev->input_dev, ABS_MT_TOUCH_MAJOR, value);
+	if ((x1 >= 0) && (y1 >= 0) && (z1 >= 0)) {
+		input_report_abs(dev->input_dev, ABS_MT_TOUCH_MAJOR, value ? z1 : value);
 		input_report_abs(dev->input_dev, ABS_MT_POSITION_X, x1);
 		input_report_abs(dev->input_dev, ABS_MT_POSITION_Y, y1);
 		input_mt_sync(dev->input_dev);
 		report = 1;
 	}
 
-	if ((x2 >= 0) && (y2 >= 0)) {
-		input_report_abs(dev->input_dev, ABS_MT_TOUCH_MAJOR, value);
+	if ((x2 >= 0) && (y2 >= 0) && (z2 >= 0)) {
+		input_report_abs(dev->input_dev, ABS_MT_TOUCH_MAJOR, value ? z2 : value);
 		input_report_abs(dev->input_dev, ABS_MT_POSITION_X, x2);
 		input_report_abs(dev->input_dev, ABS_MT_POSITION_Y, y2);
 		input_mt_sync(dev->input_dev);
@@ -259,8 +259,8 @@ static void mcs7000_work(struct work_struct *work)
 {
 	char pCommand;
 	int x1=0, y1 = 0;
-	int x2=0, y2 = 0;
-	static int pre_x1, pre_x2, pre_y1, pre_y2;
+	int x2=0, y2 = 0, z1 = 0, z2 = 0;
+	static int pre_x1, pre_x2, pre_y1, pre_y2, pre_z1, pre_z2;
 	static unsigned int s_input_type = NON_TOUCHED_STATE;
 	static unsigned int prev_input_type = NON_TOUCHED_STATE;
 	unsigned int input_type;
@@ -287,27 +287,28 @@ static void mcs7000_work(struct work_struct *work)
 		printk(KERN_ERR "%s touch ic read error\n", __FUNCTION__);
 		goto touch_retry;
 	}
-	
+
 	input_type = read_buf[0] & 0x0f;
 #if SUPPORT_TOUCH_KEY
 	key_touch = (read_buf[0] & 0xf0) >> 4;
 #endif
 
-	x1 = y1 =0;
-	x2 = y2 = 0;
+	x1 = y1 = z1 = 0;
+	x2 = y2 = z2 = 0;
 
 	x1 = (read_buf[1] & 0xf0) << 4;
 	y1 = (read_buf[1] & 0x0f) << 8;
 
 	x1 |= read_buf[2];	
 	y1 |= read_buf[3];		
-
+	z1=read_buf[4];
 	if(input_type == MULTI_POINT_TOUCH) {
 		s_input_type = input_type;
 		x2 = (read_buf[5] & 0xf0) << 4;
 		y2 = (read_buf[5] & 0x0f) << 8;
 		x2 |= read_buf[6];
 		y2 |= read_buf[7];
+		z2=z1;
 	}
 
 	if (dev->pendown) { /* touch pressed case */
@@ -340,14 +341,16 @@ static void mcs7000_work(struct work_struct *work)
 						swap(x1,x2);
 				}
 				#endif
-				mcs7000_multi_ts_event_touch(x1, y1, x2, y2, PRESSED, dev);
+				mcs7000_multi_ts_event_touch(x1, y1, z1, x2, y2, z2, PRESSED, dev);
 				pre_x1 = x1;
 				pre_y1 = y1;
+				pre_z1 = z1;
 				pre_x2 = x2;
 				pre_y2 = y2;
+				pre_z2 = z2;
 			}
 			else if(input_type == SINGLE_POINT_TOUCH) {
-				mcs7000_multi_ts_event_touch(x1, y1, -1, -1, PRESSED, dev);
+				mcs7000_multi_ts_event_touch(x1, y1, z1, -1, -1, -1, PRESSED, dev);
 				s_input_type = SINGLE_POINT_TOUCH;				
 			}
 #ifdef LG_FW_HARDKEY_BLOCK
@@ -366,12 +369,12 @@ static void mcs7000_work(struct work_struct *work)
 		if(touch_pressed) {
 			if(s_input_type == MULTI_POINT_TOUCH) {
 				DMSG("%s: multi touch release...(%d, %d), (%d, %d)\n", __FUNCTION__,pre_x1,pre_y1,pre_x2,pre_y2);
-				mcs7000_multi_ts_event_touch(pre_x1, pre_y1, pre_x2, pre_y2, RELEASED, dev);
+				mcs7000_multi_ts_event_touch(pre_x1, pre_y1, pre_z1, pre_x2, pre_y2, pre_z2, RELEASED, dev);
 				s_input_type = NON_TOUCHED_STATE; 
-				pre_x1 = -1; pre_y1 = -1; pre_x2 = -1; pre_y2 = -1;
+				pre_x1 = -1; pre_y1 = -1; pre_z1 = -1; pre_x2 = -1; pre_y2 = -1; pre_z2 = -1;
 			} else {
 				DMSG("%s: single touch release... %d, %d\n", __FUNCTION__, x1, y1);
-				mcs7000_multi_ts_event_touch(x1, y1, -1, -1, RELEASED, dev);
+				mcs7000_multi_ts_event_touch(x1, y1, z1, -1, -1, -1, RELEASED, dev);
 			}
 #ifdef LG_FW_HARDKEY_BLOCK
 			hrtimer_cancel(&dev->touch_timer);
@@ -384,16 +387,11 @@ static void mcs7000_work(struct work_struct *work)
 touch_retry:
 	if (dev->pendown) {
 		//ret = schedule_delayed_work(&dev->work, msecs_to_jiffies(TS_POLLING_TIME));
-		#if defined(TS_SAMPLERATE_HZ)
-		queue_delayed_work(dev->ts_wq, &dev->work,msecs_to_jiffies(HZ/TS_SAMPLERATE_HZ));
-		#else
 		queue_delayed_work(dev->ts_wq, &dev->work,msecs_to_jiffies(TS_POLLING_TIME));
-		#endif
 	} else {
 		enable_irq(dev->num_irq);
 		DMSG("%s: irq enable\n", __FUNCTION__);
 	}
-	
 	prev_input_type = input_type;
 }
 
@@ -405,11 +403,7 @@ static irqreturn_t mcs7000_ts_irq_handler(int irq, void *handle)
 		disable_irq_nosync(dev->num_irq);
 		DMSG("%s: irq disable\n", __FUNCTION__);
 		//schedule_delayed_work(&dev->work, 0);
-		#if defined(TS_SAMPLERATE_HZ)
-		queue_delayed_work(dev->ts_wq, &dev->work,msecs_to_jiffies(HZ/TS_SAMPLERATE_HZ));
-		#else
 		queue_delayed_work(dev->ts_wq, &dev->work,msecs_to_jiffies(TS_POLLING_TIME));
-		#endif
 	}
 
 	return IRQ_HANDLED;
@@ -879,6 +873,7 @@ static int mcs7000_ts_probe(struct i2c_client *client, const struct i2c_device_i
 
 	input_set_abs_params(mcs7000_ts_input, ABS_MT_POSITION_X, ts_pdata->ts_x_min, ts_pdata->ts_x_max, 0, 0);
 	input_set_abs_params(mcs7000_ts_input, ABS_MT_POSITION_Y, ts_pdata->ts_y_min, ts_pdata->ts_y_max, 0, 0);
+	input_set_abs_params(mcs7000_ts_input, ABS_MT_TOUCH_MAJOR, 0, 255, 0, 0);
 
 	dev = &mcs7000_ts_dev;
 
